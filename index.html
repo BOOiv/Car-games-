@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سباق الصحراء</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(180deg, #FFD700 0%, #FF8C00 50%, #CD853F 100%);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .game-container {
+            width: 800px;
+            height: 600px;
+            background: linear-gradient(180deg, #FFE4B5 0%, #DEB887 50%, #D2691E 100%);
+            border: 3px solid #8B4513;
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .road {
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                #8B4513 0px,
+                #8B4513 50px,
+                #A0522D 50px,
+                #A0522D 100px
+            );
+            position: absolute;
+            animation: roadMove 2s linear infinite;
+        }
+
+        @keyframes roadMove {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(100px); }
+        }
+
+        .car {
+            width: 60px;
+            height: 100px;
+            background: #FF0000;
+            border: 2px solid #8B0000;
+            border-radius: 10px 10px 5px 5px;
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .car::before {
+            content: '';
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            height: 30px;
+            background: #87CEEB;
+            border-radius: 5px;
+            opacity: 0.7;
+        }
+
+        .car::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 5px;
+            right: 5px;
+            height: 10px;
+            background: #2F4F4F;
+            border-radius: 50%;
+        }
+
+        .point {
+            width: 30px;
+            height: 30px;
+            background: radial-gradient(circle, #FFD700, #FFA500);
+            border: 2px solid #FF8C00;
+            border-radius: 50%;
+            position: absolute;
+            animation: pointMove 3s linear infinite;
+            z-index: 5;
+            box-shadow: 0 0 10px #FFD700;
+        }
+
+        @keyframes pointMove {
+            0% { transform: translateY(-30px); }
+            100% { transform: translateY(630px); }
+        }
+
+        .obstacle {
+            width: 50px;
+            height: 50px;
+            background: #696969;
+            border: 2px solid #2F4F4F;
+            border-radius: 5px;
+            position: absolute;
+            animation: obstacleMove 2.5s linear infinite;
+            z-index: 5;
+        }
+
+        @keyframes obstacleMove {
+            0% { transform: translateY(-50px); }
+            100% { transform: translateY(650px); }
+        }
+
+        .ui {
+            position: absolute;
+            top: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 30px;
+            z-index: 20;
+        }
+
+        .score, .speed {
+            background: rgba(0,0,0,0.7);
+            color: #FFD700;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            text-align: center;
+            background: rgba(0,0,0,0.5);
+            padding: 10px;
+            border-radius: 10px;
+            z-index: 20;
+        }
+
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            z-index: 30;
+            display: none;
+        }
+
+        .restart-btn {
+            background: #FF4500;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+
+        .restart-btn:hover {
+            background: #FF6347;
+        }
+
+        .sand-particle {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background: #DEB887;
+            border-radius: 50%;
+            animation: sandFall 4s linear infinite;
+            opacity: 0.6;
+        }
+
+        @keyframes sandFall {
+            0% { transform: translateY(-10px); opacity: 0; }
+            10% { opacity: 0.6; }
+            90% { opacity: 0.6; }
+            100% { transform: translateY(610px); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container" id="gameContainer">
+        <div class="road"></div>
+        
+        <div class="ui">
+            <div class="score">النقاط: <span id="scoreValue">0</span></div>
+            <div class="speed">السرعة: <span id="speedValue">60</span> كم/س</div>
+        </div>
+        
+        <div class="car" id="car"></div>
+        
+        <div class="controls">
+            استخدم الأسهم أو WASD للتحكم
+        </div>
+        
+        <div class="game-over" id="gameOver">
+            <h2>انتهت اللعبة!</h2>
+            <p>النقاط النهائية: <span id="finalScore">0</span></p>
+            <button class="restart-btn" onclick="restartGame()">العب مرة أخرى</button>
+        </div>
+    </div>
+
+    <script>
+        // متغيرات اللعبة
+        let score = 0;
+        let speed = 60;
+        let gameRunning = true;
+        let carPosition = 50; // نسبة مئوية من اليسار
+        
+        // عناصر DOM
+        const car = document.getElementById('car');
+        const gameContainer = document.getElementById('gameContainer');
+        const scoreElement = document.getElementById('scoreValue');
+        const speedElement = document.getElementById('speedValue');
+        const gameOverScreen = document.getElementById('gameOver');
+        const finalScoreElement = document.getElementById('finalScore');
+        
+        // تحديث موقع السيارة
+        function updateCarPosition() {
+            car.style.left = carPosition + '%';
+        }
+        
+        // إنشاء نقطة جديدة
+        function createPoint() {
+            if (!gameRunning) return;
+            
+            const point = document.createElement('div');
+            point.className = 'point';
+            point.style.left = Math.random() * 750 + 'px';
+            point.style.top = '-30px';
+            gameContainer.appendChild(point);
+            
+            // إزالة النقطة بعد انتهاء الحركة
+            setTimeout(() => {
+                if (point.parentNode) {
+                    point.parentNode.removeChild(point);
+                }
+            }, 3000);
+        }
+        
+        // إنشاء عقبة جديدة
+        function createObstacle() {
+            if (!gameRunning) return;
+            
+            const obstacle = document.createElement('div');
+            obstacle.className = 'obstacle';
+            obstacle.style.left = Math.random() * 730 + 'px';
+            obstacle.style.top = '-50px';
+            gameContainer.appendChild(obstacle);
+            
+            // إزالة العقبة بعد انتهاء الحركة
+            setTimeout(() => {
+                if (obstacle.parentNode) {
+                    obstacle.parentNode.removeChild(obstacle);
+                }
+            }, 2500);
+        }
+        
+        // إنشاء جزيئات الرمل
+        function createSandParticle() {
+            if (!gameRunning) return;
+            
+            const particle = document.createElement('div');
+            particle.className = 'sand-particle';
+            particle.style.left = Math.random() * 800 + 'px';
+            particle.style.top = '-10px';
+            gameContainer.appendChild(particle);
+            
+            setTimeout(() => {
+                if (particle.parentNode) {
+                    particle.parentNode.removeChild(particle);
+                }
+            }, 4000);
+        }
+        
+        // فحص التصادمات
+        function checkCollisions() {
+            const carRect = car.getBoundingClientRect();
+            const points = document.querySelectorAll('.point');
+            const obstacles = document.querySelectorAll('.obstacle');
+            
+            // فحص تصادم النقاط
+            points.forEach(point => {
+                const pointRect = point.getBoundingClientRect();
+                if (isColliding(carRect, pointRect)) {
+                    score += 10;
+                    scoreElement.textContent = score;
+                    point.parentNode.removeChild(point);
+                    
+                    // زيادة السرعة تدريجياً
+                    if (score % 50 === 0) {
+                        speed += 5;
+                        speedElement.textContent = speed;
+                    }
+                }
+            });
+            
+            // فحص تصادم العقبات
+            obstacles.forEach(obstacle => {
+                const obstacleRect = obstacle.getBoundingClientRect();
+                if (isColliding(carRect, obstacleRect)) {
+                    gameOver();
+                }
+            });
+        }
+        
+        // فحص التصادم بين عنصرين
+        function isColliding(rect1, rect2) {
+            return !(rect1.right < rect2.left || 
+                    rect1.left > rect2.right || 
+                    rect1.bottom < rect2.top || 
+                    rect1.top > rect2.bottom);
+        }
+        
+        // انتهاء اللعبة
+        function gameOver() {
+            gameRunning = false;
+            finalScoreElement.textContent = score;
+            gameOverScreen.style.display = 'block';
+        }
+        
+        // إعادة تشغيل اللعبة
+        function restartGame() {
+            score = 0;
+            speed = 60;
+            carPosition = 50;
+            gameRunning = true;
+            
+            scoreElement.textContent = score;
+            speedElement.textContent = speed;
+            updateCarPosition();
+            gameOverScreen.style.display = 'none';
+            
+            // إزالة جميع النقاط والعقبات
+            document.querySelectorAll('.point, .obstacle, .sand-particle').forEach(element => {
+                element.parentNode.removeChild(element);
+            });
+        }
+        
+        // التحكم بالسيارة
+        document.addEventListener('keydown', (event) => {
+            if (!gameRunning) return;
+            
+            switch(event.key) {
+                case 'ArrowLeft':
+                case 'a':
+                case 'A':
+                    if (carPosition > 5) {
+                        carPosition -= 5;
+                        updateCarPosition();
+                    }
+                    break;
+                case 'ArrowRight':
+                case 'd':
+                case 'D':
+                    if (carPosition < 90) {
+                        carPosition += 5;
+                        updateCarPosition();
+                    }
+                    break;
+                case 'ArrowUp':
+                case 'w':
+                case 'W':
+                    // يمكن إضافة تسارع هنا
+                    break;
+                case 'ArrowDown':
+                case 's':
+                case 'S':
+                    // يمكن إضافة إبطاء هنا
+                    break;
+            }
+        });
+        
+        // بدء اللعبة
+        function startGame() {
+            // إنشاء النقاط
+            setInterval(createPoint, 2000);
+            
+            // إنشاء العقبات
+            setInterval(createObstacle, 3000);
+            
+            // إنشاء جزيئات الرمل
+            setInterval(createSandParticle, 200);
+            
+            // فحص التصادمات
+            setInterval(checkCollisions, 50);
+        }
+        
+        // تشغيل اللعبة عند تحميل الصفحة
+        window.addEventListener('load', startGame);
+    </script>
+</body>
+</html>
+
